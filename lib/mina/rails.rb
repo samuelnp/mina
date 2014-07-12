@@ -157,6 +157,27 @@ namespace :rails do
     end
   end
 
+  task :db_seed do
+    message = verbose_mode? ?
+      '$((count)) changes found, migrating database' :
+      'Seeding database'
+
+    queue check_for_changes_script \
+      :check => 'db/seeds.rb',
+      :at => ['db/seeds.rb'],
+      :skip => %[
+        echo "-----> DB seed unchanged; skipping rake db:seed"
+      ],
+      :changed => %[
+        echo "-----> #{message}"
+        #{echo_cmd %[#{rake} db:seed]}
+      ],
+      :default => %[
+        echo "-----> Migrating database"
+        #{echo_cmd %[#{rake} db:seed]}
+      ]
+  end
+
   # ### rails:db_migrate:force
   desc "Migrates the Rails database."
   task :'db_migrate:force' do
