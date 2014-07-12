@@ -16,13 +16,21 @@ require 'mina/bundler'
 
 set_default :rails_env, 'production'
 
+# ### rails_env_prefix
+# Prefix for specify rails environment commands.
+# bundle exec`.
+#
+#     queue! "#{bundle_prefix} annotate -r"
+
+set_default :rails_env_prefix, lambda { %{RAILS_ENV="#{rails_env}"} }
+
 # ### bundle_prefix
 # Prefix for Bundler commands. Often to something like `RAILS_ENV=production
 # bundle exec`.
 #
 #     queue! "#{bundle_prefix} annotate -r"
 
-set_default :bundle_prefix, lambda { %{RAILS_ENV="#{rails_env}" #{bundle_bin} exec} }
+set_default :bundle_prefix, lambda { %{#{rails_env_prefix} #{bundle_bin} exec} }
 
 # ### rake
 # The prefix for `rake` commands. Use like so:
@@ -173,7 +181,7 @@ namespace :rails do
         #{echo_cmd %[#{rake} db:seed]}
       ],
       :default => %[
-        echo "-----> Migrating database"
+        echo "-----> Seed database"
         #{echo_cmd %[#{rake} db:seed]}
       ]
   end
@@ -224,4 +232,35 @@ namespace :rails do
     end
   end
 
+  desc "Tail rails logs"
+  task :'tail_logs' do
+    queue %{
+      echo "-----> Tail rails logs"
+      #{echo_cmd %[tail -f #{deploy_to}/#{shared_path}/log/#{rails_env}.log]}
+    }
+  end
+
+  desc "Stop delayed jobs"
+  task :'stop_delayed_jobs' do
+    queue %{
+      echo "-----> Stopping delayed jobs"
+      #{echo_cmd %[#{rails_env_prefix} #{deploy_to}/#{current_path}/script/delayed_job stop]}
+    }
+  end
+
+  desc "Start delayed jobs"
+  task :'start_delayed_jobs' do
+    queue %{
+      echo "-----> Starting delayed jobs"
+      #{echo_cmd %[#{rails_env_prefix} #{deploy_to}/#{current_path}/script/delayed_job start]}
+    }
+  end
+
+  desc "Restart delayed jobs"
+  task :'restart_delayed_jobs' do
+    queue %{
+      echo "-----> Starting delayed jobs"
+      #{echo_cmd %[#{rails_env_prefix} #{deploy_to}/#{current_path}/script/delayed_job restart]}
+    }
+  end
 end
